@@ -3,3 +3,5 @@ md_flow/
 yl_debug/
 __pycache__/
 *.pyc
+
+*.lnk
