@@ -79,9 +79,7 @@ def main():
 
                 def _f(key):
                     q = quotes.get(key)
-                    if not q:
-                        return '?'
-                    return f"{q['price']:.2f}({q['pct']:+.2f}%)"
+                    return f"{q['price']:.2f}({q['pct']:+.2f}%)" if q else '?'
 
                 print(f'[{ts}] #{count:4d}  '
                       f'上证={_f("shzs")}  '
