@@ -3,7 +3,7 @@
 使用 QMT（迅投）xtquant 订阅 IF/IH/IC/IM 四个品种实时 Tick，写入 SQLite
 
 运行前提：
-1. 华泰 QMT 客户端已登录并在后台运行
+1. 华泰 QMT 客户端（MiniQMT）已登录并在后台运行
 2. xtquant 已复制到 Python site-packages
 """
 
@@ -41,40 +41,50 @@ def init_db(con):
         ask5        REAL, ask5_vol INTEGER,
         volume      INTEGER,
         amount      REAL,
-        open_interest INTEGER
+        open_int    INTEGER
     )''')
     con.commit()
 
 
 def make_callback(con, symbol):
     def on_tick(data):
+        tick = data.get(symbol)
+        if not tick:
+            return
         ts = time.strftime('%Y-%m-%d %H:%M:%S')
         try:
+            bid_p = tick.get('bidPrice', [None]*5)
+            bid_v = tick.get('bidVol',   [None]*5)
+            ask_p = tick.get('askPrice', [None]*5)
+            ask_v = tick.get('askVol',   [None]*5)
+
+            def _p(lst, i): return lst[i] if lst and len(lst) > i else None
+
             con.execute(
                 '''INSERT INTO qmt_tick VALUES
                 (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                 (ts, symbol,
-                 data.get('lastPrice'),
-                 data.get('bidPrice1'), data.get('bidVol1'),
-                 data.get('bidPrice2'), data.get('bidVol2'),
-                 data.get('bidPrice3'), data.get('bidVol3'),
-                 data.get('bidPrice4'), data.get('bidVol4'),
-                 data.get('bidPrice5'), data.get('bidVol5'),
-                 data.get('askPrice1'), data.get('askVol1'),
-                 data.get('askPrice2'), data.get('askVol2'),
-                 data.get('askPrice3'), data.get('askVol3'),
-                 data.get('askPrice4'), data.get('askVol4'),
-                 data.get('askPrice5'), data.get('askVol5'),
-                 data.get('volume'),
-                 data.get('amount'),
-                 data.get('openInterest'))
+                 tick.get('lastPrice'),
+                 _p(bid_p,0), _p(bid_v,0),
+                 _p(bid_p,1), _p(bid_v,1),
+                 _p(bid_p,2), _p(bid_v,2),
+                 _p(bid_p,3), _p(bid_v,3),
+                 _p(bid_p,4), _p(bid_v,4),
+                 _p(ask_p,0), _p(ask_v,0),
+                 _p(ask_p,1), _p(ask_v,1),
+                 _p(ask_p,2), _p(ask_v,2),
+                 _p(ask_p,3), _p(ask_v,3),
+                 _p(ask_p,4), _p(ask_v,4),
+                 tick.get('volume'),
+                 tick.get('amount'),
+                 tick.get('openInt'))
             )
             con.commit()
             print(f'[{ts}] {symbol}  '
-                  f'最新={data.get("lastPrice")}  '
-                  f'买一={data.get("bidPrice1")}×{data.get("bidVol1")}  '
-                  f'卖一={data.get("askPrice1")}×{data.get("askVol1")}  '
-                  f'持仓={data.get("openInterest")}')
+                  f'最新={tick.get("lastPrice")}  '
+                  f'买一={_p(bid_p,0)}×{_p(bid_v,0)}  '
+                  f'卖一={_p(ask_p,0)}×{_p(ask_v,0)}  '
+                  f'持仓={tick.get("openInt")}')
         except Exception as e:
             print(f'[ERR] {e}')
     return on_tick
